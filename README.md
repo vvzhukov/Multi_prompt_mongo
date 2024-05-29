@@ -20,7 +20,7 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
 ## Requirements
 
 - Python 3.9+
-- libraries `pymongo`, `transformers`, `concurrent`, `os`, `logging`, `agrparse`
+- Libraries `pymongo`, `transformers`, `concurrent`, `os`, `logging`, `agrparse`
 
 ## Usage
 
@@ -31,7 +31,7 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
 2. Check Mongo DB connection and input data. You may use extra tools:  
    - `db_pymongo_json_gen.py` generate .json file 
    - `db_init_content.json` pre-generated data file 
-   - `db_pymongo_init.py` populate data from json to the DB 
+   - `db_pymongo_init.py` populate data from json to the DB (set proper global vars or modify model_workers.py to run)
      
 3. Review script parameters:
    ```bash
@@ -76,3 +76,17 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
 5. Run the script:
    ```bash
    python model_worker.py --parallel 5 --model roneneldan/TinyStories-33M --mongo_connection_string mongodb+srv://user:pwd@cluster0.ycbqnn4.mongodb.net/ --template phi3.template
+   
+## QA Report
+1. Tested on cloud DB (https://cloud.mongodb.com), cloud LLM (https://huggingface.co/roneneldan/TinyStories-33M). Local DB and LLM model should not be a problem, however it will require some corrections (at least for the connection part).
+2. Various configurations of workers (w) and batches (b). w:1,2,3,5,10; b:10,20,100. 
+3. Tested on the following data sizes: 0, 3, 10, 100, 1000 records 
+4. Expected faults: connection/network issues, unexpected thread terminations 
+
+## Future work
+A bunch of TODOs are in the code. In general here is a list of important features:
+1. Should work with local DB and LLM without script body alteration.
+2. Pass parameters to the model (such as: Temperature, Top-k & Top-p Sampling, Max Tokens, presence & Freq penalties and etc.).
+3. More accurate work with the template (default for missing elements).
+4. Better error handling (only process Timeout error properly). Might impact data integrity.
+5. Sanity check for parameters.
