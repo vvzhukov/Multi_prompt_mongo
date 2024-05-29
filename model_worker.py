@@ -1,8 +1,9 @@
-from transformers import pipeline, AutoTokenizer
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+from transformers import pipeline, AutoTokenizer
 from pymongo import MongoClient, ReturnDocument
 from datetime import datetime
 import os
+import signal
 import logging
 import argparse
 
@@ -27,6 +28,9 @@ tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
 llm_pipeline = pipeline("text-generation",
                         model=MODEL_NAME)
 
+# Flag for graceful shutdown
+shutdown_flag = False
+
 
 def read_template(template_file):
     """Read prompt template from the file"""
@@ -46,6 +50,14 @@ def apply_template(system, question):
     template = read_template(TEMPLATE)
     # TODO deal with user and assistant
     return template.replace("{{ system }}", system).replace("{{ question }}", question)
+
+
+def signal_handler(sig, frame):
+    """Catch and process termination signals"""
+
+    global shutdown_flag
+    logging.info("Shutdown signal received. Stopping worker...")
+    shutdown_flag = True
 
 
 def process_prompt(request):
@@ -68,6 +80,8 @@ def process_prompt(request):
 def worker_mgr():
     """Worker manager: connects to DB, creates workers, updates DB"""
 
+    # Catch signals
+    global shutdown_flag
     # Connect to MONGO
     try:
         client = MongoClient(DB_URI)
@@ -77,7 +91,7 @@ def worker_mgr():
         logging.error(f"Error connecting to DB: {DB_URI}: {e}")
         exit(1)
 
-    while True:
+    while not shutdown_flag:
         # Fetch BATCH_SIZE records from MongoDB
         requests = list(req_coll.find({"status": "new"}).limit(BATCH_SIZE))
         id_list = [rec['_id'] for rec in requests]
@@ -131,10 +145,13 @@ if __name__ == '__main__':
     # extra arguments
     parser.add_argument('--db_name', type=str, default=DB_NAME, help='Database name')
     parser.add_argument('--requests_collection', type=str, default=REQUESTS_COLLECTION, help='Requests collection name')
-    parser.add_argument('--batch_size', type=int, default=BATCH_SIZE, help='Batch size (to feed the workers)', choices=range(1, 100))
+    parser.add_argument('--batch_size', type=int, default=BATCH_SIZE, help='Batch size (to feed the workers)',
+                        choices=range(1, 100))
     parser.add_argument('--timeout', type=int, default=TIMEOUT, help='Worker prompt timeout', choices=range(1, 10000))
-    parser.add_argument('--min_len', type=int, default=MIN_LEN, help='Prompt generation parameters', choices=range(0, 2000))
-    parser.add_argument('--max_len', type=int, default=MAX_LEN, help='Prompt generation parameters', choices=range(1, 2000))
+    parser.add_argument('--min_len', type=int, default=MIN_LEN, help='Prompt generation parameters',
+                        choices=range(0, 2000))
+    parser.add_argument('--max_len', type=int, default=MAX_LEN, help='Prompt generation parameters',
+                        choices=range(1, 2000))
 
     # TODO Sanity check for parameters (num of workers, batch size, etc.)
 
@@ -150,6 +167,10 @@ if __name__ == '__main__':
     TIMEOUT = args.timeout
     MIN_LEN = args.min_len
     MAX_LEN = args.max_len
+
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
     logging.info(f"Starting with {WORKER_COUNT} workers and batch size of {BATCH_SIZE}...")
     worker_mgr()
