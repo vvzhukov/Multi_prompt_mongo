@@ -1,6 +1,13 @@
 # MongoDB LLM Worker
 
-This script processes multiple  LLM requests from MongoDB in parallel and writes the responses back to MongoDB. It is designed to run multiple workers in parallel with an "at least once" safety guarantee.
+This script `model_worker.py` processes multiple  LLM requests from MongoDB in parallel and writes the responses back to MongoDB. It is designed to run multiple workers in parallel with an "at least once" safety guarantee.
+
+## List of files
+1. `model_worker.py` - main application file 
+2. `db_pymongo_json_gen.py` - supplementary file for JSON data generation
+3. `db_pymongo_init.py` - supplementary file for data migration from JSON to MongoDB
+4. `db_init_content.json` - supplementary JSON file with pre generated data
+5. `phi3.template` - prompt template file
 
 ## Highlights / Acceptance Criteria
 
@@ -21,7 +28,8 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
 
 - Python 3.9+
 - Libraries `pymongo`, `transformers`, `concurrent`, `os`, `logging`, `agrparse`, `signal`
-- Internet connection (cloud.mongodb.com, huggingface.co/roneneldan/TinyStories-33M)
+- Internet connection (access to cloud.mongodb.com, huggingface.co/roneneldan/TinyStories-33M)
+- Existing template (`phi3.template`)
 
 ## Usage
 
@@ -30,9 +38,9 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
    pip install pymongo transformers
    ``` 
 2. Check Mongo DB connection and input data. You may use extra tools:  
-   - `db_pymongo_json_gen.py` generate .json file 
+   - `db_pymongo_json_gen.py` generate .JSON file 
    - `db_init_content.json` pre-generated data file 
-   - `db_pymongo_init.py` populate data from json to the DB (set proper global vars or modify model_workers.py to run)
+   - `db_pymongo_init.py` populate data from JSON to the DB (set proper global vars or modify model_workers.py to run)
      
 3. Review script parameters:
    ```bash
@@ -82,7 +90,7 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
 1. Tested on cloud DB (https://cloud.mongodb.com), cloud LLM (https://huggingface.co/roneneldan/TinyStories-33M). Local DB and LLM model should not be a problem, however it will require some corrections (at least for the connection part).
 2. Various configurations of workers (w) and batches (b). w:1,2,3,5,10; b:10,20,100. 
 3. Tested on the following data sizes: 0, 3, 10, 100, 1000 records.
-4. Expected faults: connection/network issues, unexpected thread terminations. 
+4. Expected faults: connection/network issues, unexpected thread terminations, missing template file. 
 
 ## Future work / TODOs
 A bunch of TODOs are in the code. In general here is a list of important features:
