@@ -72,8 +72,8 @@ This script `model_worker.py` processes multiple  LLM requests from MongoDB in p
    export DB_URI="mongodb+srv://user:password@cluster0.ycbqnn4.mongodb.net/")
    export DB_NAME="prompt_multiproc"
    export REQUESTS_COLLECTION="mongorequests"
-   export BATCH_SIZE=10
-   export WORKER_CNT=5
+   export BATCH_SIZE=8
+   export WORKER_CNT=1
    export TIMEOUT=15
    export MIN_LEN=5
    export MAX_LEN=200
@@ -84,11 +84,15 @@ This script `model_worker.py` processes multiple  LLM requests from MongoDB in p
 
 5. Run the script:
    ```bash
-   python model_worker.py --parallel 5 --model roneneldan/TinyStories-33M --mongo_connection_string mongodb+srv://user:pwd@cluster0.ycbqnn4.mongodb.net/ --template phi3.template
-   
+   python model_worker.py --parallel 3 --model roneneldan/TinyStories-33M --mongo_connection_string mongodb+srv://user:pwd@cluster0.ycbqnn4.mongodb.net/ --template phi3.template
+   ```
+   Optimal batch size 6-8 due to limitations from LLM API.
+
 ## QA Report
 1. Tested on cloud DB (https://cloud.mongodb.com), cloud LLM (https://huggingface.co/roneneldan/TinyStories-33M). Local DB and LLM model should not be a problem, however it will require some corrections (at least for the connection part).
-2. Various configurations of workers (w) and batches (b). w:1,2,3,5,10; b:10,20,100. 
+2. Various configurations of workers (w) and batches (b). w:1,2,3,5,10; b:1,5,10,20,99.  
+   (!) Batch sizes with 8 or more records may result in unfinished futures due to the bottleneck from 
+the LLM API throughput (solution - timeout within worker, premium account or local LLM).  
 3. Tested on the following data sizes: 0, 3, 10, 100, 1000 records.
 4. Expected faults: connection/network issues, unexpected thread terminations, missing template file. 
 

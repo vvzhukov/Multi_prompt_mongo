@@ -11,7 +11,7 @@ import argparse
 DB_URI = os.getenv("MONGO_URI", "mongodb+srv://usr:pwd@cluster0.ycbqnn4.mongodb.net/")
 DB_NAME = os.getenv("DB_NAME", "prompt_multiproc")
 REQUESTS_COLLECTION = os.getenv("REQUESTS_COLLECTION", "mongorequests")
-BATCH_SIZE = int(os.getenv("BATCH_SIZE", 10))
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", 8))
 WORKER_CNT = int(os.getenv("WORKER_CNT", 1))
 TIMEOUT = int(os.getenv("TIMEOUT", 15))
 MIN_LEN = int(os.getenv("MIN_LEN", 5))
@@ -147,7 +147,7 @@ def worker_mgr():
 if __name__ == '__main__':
     # arguments given by specification
     parser = argparse.ArgumentParser(description="Process LLM requests from MongoDB.")
-    parser.add_argument('--parallel', type=int, default=WORKER_CNT, help='Number of workers', choices=range(1, 100))
+    parser.add_argument('--parallel', type=int, default=WORKER_CNT, help='Number of workers', choices=range(1, 10))
     parser.add_argument('--model', type=str, default=MODEL_NAME, help='Model name')
     parser.add_argument('--mongo_connection_string', type=str, default=DB_URI, help='MongoDB connection string')
     parser.add_argument('--template', type=str, default=TEMPLATE, help='Template name')
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     parser.add_argument('--db_name', type=str, default=DB_NAME, help='Database name')
     parser.add_argument('--requests_collection', type=str, default=REQUESTS_COLLECTION, help='Requests collection name')
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE, help='Batch size (to feed the workers)',
-                        choices=range(1, 100))
+                        choices=range(1, 10))
     parser.add_argument('--timeout', type=int, default=TIMEOUT, help='Worker prompt timeout', choices=range(1, 10000))
     parser.add_argument('--min_len', type=int, default=MIN_LEN, help='Prompt generation parameters',
                         choices=range(0, 2000))
