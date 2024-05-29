@@ -7,20 +7,21 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
 1. **MongoDB Connection**: Establish a connection to MongoDB using `mongo_connection_string`.
 2. **Fetch Requests**: Fetch `batch_size` LLM requests from a MongoDB collection.
 3. **Process Requests**: Use a language model (default `roneneldan/TinyStories-33M`) to process each request.
-4. **Write Responses**: Write the processed responses back to the MongoDB collection, including the batch start processing and completion times.
-5. **Parallel Processing**: Process the requests in parallel to improve efficiency.
+4. **Write Responses**: Write the processed responses back to the MongoDB collection `requests_collection`, including the batch start processing and completion times.
+5. **Parallel Processing**: Process the requests in parallel to improve efficiency. Number of threads controlled by `parallel`.
 6. **Multiple Workers**: Ensure multiple workers can run in parallel without interfering with each other.
 7. **At Least Once Guarantee**: Ensure that each request is processed at least once.
 8. **Logging**: Implement logging for tracking and debugging.
 9. **Configuration**: Allow configuration of parameters such as the number of requests to process, MongoDB connection details through arguments or environment variables.
 10. **Graceful Shutdown**: Ensure the worker can shut down gracefully.
-11. **Timeout Handling**: Implement a timeout for LLM processing.
+11. **Timeout Handling**: Implement a timeout for LLM processing. may be customized by `timeout`.
 12. **Template Integration**: Use the specified template `phi3.template` for responses generation.
 
 ## Requirements
 
 - Python 3.9+
-- Libraries `pymongo`, `transformers`, `concurrent`, `os`, `logging`, `agrparse`
+- Libraries `pymongo`, `transformers`, `concurrent`, `os`, `logging`, `agrparse`, `signal`
+- Internet connection (cloud.mongodb.com, huggingface.co/roneneldan/TinyStories-33M)
 
 ## Usage
 
@@ -80,13 +81,14 @@ This script processes multiple  LLM requests from MongoDB in parallel and writes
 ## QA Report
 1. Tested on cloud DB (https://cloud.mongodb.com), cloud LLM (https://huggingface.co/roneneldan/TinyStories-33M). Local DB and LLM model should not be a problem, however it will require some corrections (at least for the connection part).
 2. Various configurations of workers (w) and batches (b). w:1,2,3,5,10; b:10,20,100. 
-3. Tested on the following data sizes: 0, 3, 10, 100, 1000 records 
-4. Expected faults: connection/network issues, unexpected thread terminations 
+3. Tested on the following data sizes: 0, 3, 10, 100, 1000 records.
+4. Expected faults: connection/network issues, unexpected thread terminations. 
 
-## Future work
+## Future work / TODOs
 A bunch of TODOs are in the code. In general here is a list of important features:
 1. Should work with local DB and LLM without script body alteration.
 2. Pass parameters to the model (such as: Temperature, Top-k & Top-p Sampling, Max Tokens, presence & Freq penalties and etc.).
 3. More accurate work with the template (default for missing elements).
 4. Better error handling (only process Timeout error properly). Might impact data integrity.
 5. Sanity check for parameters.
+6. Move some parameters to configuration files.
