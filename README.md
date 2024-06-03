@@ -15,14 +15,12 @@ This script `model_worker.py` processes multiple  LLM requests from MongoDB in p
 2. **Fetch Requests**: Fetch `batch_size` LLM requests from a MongoDB collection.
 3. **Process Requests**: Use a language model (default `roneneldan/TinyStories-33M`) to process each request.
 4. **Write Responses**: Write the processed responses back to the MongoDB collection `requests_collection`, including the batch start processing and completion times.
-5. **Parallel Processing**: Process the requests in parallel to improve efficiency. Number of threads controlled by `parallel`.
+5. **Parallel Processing**: Process the requests in parallel to improve efficiency. Implemented by `transformers Pipeline batching` Number of threads controlled by `parallel`.
 6. **Multiple Workers**: Ensure multiple workers can run in parallel without interfering with each other.
 7. **At Least Once Guarantee**: Ensure that each request is processed at least once.
 8. **Logging**: Implement logging for tracking and debugging.
 9. **Configuration**: Allow configuration of parameters such as the number of requests to process, MongoDB connection details through arguments or environment variables.
-10. **Graceful Shutdown**: Ensure the worker can shut down gracefully.
-11. **Timeout Handling**: Implement a timeout for LLM processing. may be customized by `timeout`.
-12. **Template Integration**: Use the specified template `phi3.template` for responses generation.
+10. **Template Integration**: Use the specified template `phi3.template` for responses generation.
 
 ## Requirements
 
@@ -62,7 +60,6 @@ This script `model_worker.py` processes multiple  LLM requests from MongoDB in p
                            Requests collection name
      --batch_size BATCH_SIZE
                            Batch size (to feed the workers)
-     --timeout TIMEOUT     Worker prompt timeout
      --min_len MIN_LEN     Prompt generation parameters, output min length
      --max_len MAX_LEN     Prompt generation parameters, output max length
    ```
@@ -72,9 +69,8 @@ This script `model_worker.py` processes multiple  LLM requests from MongoDB in p
    export DB_URI="mongodb+srv://user:password@cluster0.ycbqnn4.mongodb.net/")
    export DB_NAME="prompt_multiproc"
    export REQUESTS_COLLECTION="mongorequests"
-   export BATCH_SIZE=8
-   export WORKER_CNT=1
-   export TIMEOUT=15
+   export BATCH_SIZE=50
+   export WORKER_CNT=4
    export MIN_LEN=5
    export MAX_LEN=200
    export MODEL_NAME="roneneldan/TinyStories-33M"
@@ -84,23 +80,19 @@ This script `model_worker.py` processes multiple  LLM requests from MongoDB in p
 
 5. Run the script:
    ```bash
-   python model_worker.py --parallel 3 --model roneneldan/TinyStories-33M --mongo_connection_string mongodb+srv://user:pwd@cluster0.ycbqnn4.mongodb.net/ --template phi3.template
+   python model_worker.py --parallel 4 --model roneneldan/TinyStories-33M --mongo_connection_string mongodb+srv://user:pwd@cluster0.ycbqnn4.mongodb.net/ --template phi3.template
    ```
-   Optimal batch size 6-8 due to limitations from LLM API.
 
 ## QA Report
-1. Tested on cloud DB (https://cloud.mongodb.com), cloud LLM (https://huggingface.co/roneneldan/TinyStories-33M). Local DB and LLM model should not be a problem, however it will require some corrections (at least for the connection part).
-2. Various configurations of workers (w) and batches (b). w:1,2,3,5,10; b:1,5,10,20,99.  
-   (!) Batch sizes with 8 or more records may result in unfinished futures due to the bottleneck from 
-the LLM API throughput (solution - timeout within worker, premium account or local LLM).  
+1. Tested on cloud DB (https://cloud.mongodb.com), local LLM (https://huggingface.co/roneneldan/TinyStories-33M). Local DB and LLM model should not be a problem, however it will require some corrections (at least for the connection part).
+2. Various configurations of workers (w) and batches (b). w:1,2,3,5,10; b:1,5,10,20,99.   
 3. Tested on the following data sizes: 0, 3, 10, 100, 1000 records.
 4. Expected faults: connection/network issues, unexpected thread terminations, missing template file. 
 
 ## Future work / TODOs
 A bunch of TODOs are in the code. In general here is a list of important features:
-1. Should work with local DB and LLM without script body alteration.
-2. Pass parameters to the model (such as: Temperature, Top-k & Top-p Sampling, Max Tokens, presence & Freq penalties and etc.).
-3. More accurate work with the template (default for missing elements).
-4. Better error handling (only process Timeout error properly). Might impact data integrity.
-5. Sanity check for parameters.
-6. Move some parameters to configuration files.
+1. Pass parameters to the model (such as: Temperature, Top-k & Top-p Sampling, Max Tokens, presence & Freq penalties and etc.).
+2. More accurate work with the template (default for missing elements).
+3. Better error handling (only process Timeout error properly). Might impact data integrity.
+4. Sanity check for parameters.
+5. Move some parameters to configuration files.
